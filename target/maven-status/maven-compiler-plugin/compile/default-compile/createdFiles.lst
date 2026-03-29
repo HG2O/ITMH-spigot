@@ -8,6 +8,7 @@ com\itmh\dragon\listener\EnderChestListener.class
 com\itmh\dragon\util\ItemMatcher.class
 com\itmh\dragon\command\FindItemCommand.class
 com\itmh\dragon\gui\ResultsGUI.class
+com\itmh\dragon\search\SearchEngine$InventorySnapshot.class
 com\itmh\dragon\model\ItemSearchResult$LocationType.class
 com\itmh\dragon\search\SearchEngine$1.class
 com\itmh\dragon\model\ItemSearchResult.class

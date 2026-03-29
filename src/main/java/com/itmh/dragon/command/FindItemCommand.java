@@ -44,20 +44,26 @@ public class FindItemCommand implements CommandExecutor, TabCompleter {
 
         String query = String.join(" ", args);
 
-        player.sendMessage(ChatColor.AQUA + "🔍 Recherche de " + ChatColor.WHITE + "\"" + query + "\"" + ChatColor.AQUA + " en cours...");
+        player.sendMessage(ChatColor.AQUA + "🔍 Recherche de " + ChatColor.WHITE + "\"" + query + "\""
+                + ChatColor.AQUA + " en cours...");
 
-        // Recherche asynchrone pour ne pas freezer le serveur
+        // Étape 1 : collecter les snapshots sur le main thread (accès TileEntities obligatoire)
+        List<SearchEngine.InventorySnapshot> snapshots = searchEngine.collectSnapshots();
+
+        // Étape 2 : matching en async (aucun accès Bukkit, juste du traitement de données)
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            List<ItemSearchResult> results = searchEngine.search(query);
+            List<ItemSearchResult> results = searchEngine.search(snapshots, query);
 
-            // Retour sur le thread principal pour ouvrir l'inventaire
+            // Étape 3 : retour sur le main thread pour ouvrir l'inventaire
             plugin.getServer().getScheduler().runTask(plugin, () -> {
                 if (results.isEmpty()) {
-                    player.sendMessage(ChatColor.RED + "❌ Aucun item trouvé pour " + ChatColor.WHITE + "\"" + query + "\"");
+                    player.sendMessage(ChatColor.RED + "❌ Aucun item trouvé pour "
+                            + ChatColor.WHITE + "\"" + query + "\"");
                     return;
                 }
 
-                player.sendMessage(ChatColor.GREEN + "✅ " + ChatColor.WHITE + results.size() + " résultat(s) trouvé(s) !");
+                player.sendMessage(ChatColor.GREEN + "✅ " + ChatColor.WHITE
+                        + results.size() + " résultat(s) trouvé(s) !");
 
                 ResultsGUI.open(player, results, query, 0);
             });

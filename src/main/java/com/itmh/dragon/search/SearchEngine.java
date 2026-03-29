@@ -24,18 +24,32 @@ public class SearchEngine {
         this.plugin = plugin;
     }
 
-    public List<ItemSearchResult> search(String query) {
-        List<ItemSearchResult> results = new ArrayList<>();
+    /**
+     * Snapshot d'un inventaire capturé sur le main thread.
+     */
+    public record InventorySnapshot(ItemStack[] contents,
+                                    ItemSearchResult.LocationType type,
+                                    String label,
+                                    Location location) {}
+
+    /**
+     * Collecte tous les inventaires sur le main thread (obligatoire pour les TileEntities).
+     * Appeler UNIQUEMENT depuis le thread principal.
+     */
+    public List<InventorySnapshot> collectSnapshots() {
+        List<InventorySnapshot> snapshots = new ArrayList<>();
 
         // 1. Inventaires et ender chests des joueurs en ligne
         for (Player player : Bukkit.getOnlinePlayers()) {
-            scanInventory(player.getInventory().getContents(), query,
+            snapshots.add(new InventorySnapshot(
+                    player.getInventory().getContents().clone(),
                     ItemSearchResult.LocationType.PLAYER_INVENTORY,
-                    player.getName(), player.getLocation(), results);
+                    player.getName(), player.getLocation()));
 
-            scanInventory(player.getEnderChest().getContents(), query,
+            snapshots.add(new InventorySnapshot(
+                    player.getEnderChest().getContents().clone(),
                     ItemSearchResult.LocationType.PLAYER_ENDERCHEST,
-                    player.getName(), player.getLocation(), results);
+                    player.getName(), player.getLocation()));
         }
 
         // 2. Ender chests des joueurs hors-ligne (cache)
@@ -46,12 +60,13 @@ public class SearchEngine {
             String name = Optional.ofNullable(Bukkit.getOfflinePlayer(entry.getKey()).getName())
                     .orElse(entry.getKey().toString());
 
-            scanInventory(entry.getValue(), query,
+            snapshots.add(new InventorySnapshot(
+                    entry.getValue().clone(),
                     ItemSearchResult.LocationType.PLAYER_ENDERCHEST,
-                    name + " (hors-ligne)", null, results);
+                    name + " (hors-ligne)", null));
         }
 
-        // 3. Containers dans les chunks chargés
+        // 3. Containers dans les chunks chargés — DOIT rester sur le main thread
         for (World world : Bukkit.getWorlds()) {
             for (Chunk chunk : world.getLoadedChunks()) {
                 for (BlockState state : chunk.getTileEntities()) {
@@ -73,11 +88,24 @@ public class SearchEngine {
                         default -> ItemSearchResult.LocationType.OTHER_CONTAINER;
                     };
 
-                    scanInventory(container.getInventory().getContents(), query, type, coords, loc, results);
+                    snapshots.add(new InventorySnapshot(
+                            container.getInventory().getContents().clone(),
+                            type, coords, loc));
                 }
             }
         }
 
+        return snapshots;
+    }
+
+    /**
+     * Effectue le matching sur les snapshots — peut être appelé en async.
+     */
+    public List<ItemSearchResult> search(List<InventorySnapshot> snapshots, String query) {
+        List<ItemSearchResult> results = new ArrayList<>();
+        for (InventorySnapshot snap : snapshots) {
+            scanInventory(snap.contents(), query, snap.type(), snap.label(), snap.location(), results);
+        }
         return results;
     }
 
