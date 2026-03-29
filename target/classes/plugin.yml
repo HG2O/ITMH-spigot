@@ -1,0 +1,15 @@
+name: ITMH
+version: 1.0-SNAPSHOT
+main: com.itmh.dragon.ItemFinderPlugin
+api-version: 1.21
+
+commands:
+  finditem:
+    description: Trouver un item sur le serveur
+    usage: /finditem <nom ou matériau>
+    permission: itemfinder.use
+
+permissions:
+  itemfinder.use:
+    description: Permet d'utiliser /finditem
+    default: op
