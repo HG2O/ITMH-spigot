@@ -107,7 +107,7 @@ public class ResultsGUI {
         ItemMeta infoMeta = info.getItemMeta();
         infoMeta.setDisplayName(ChatColor.YELLOW + "Page " + (page + 1) + " / " + totalPages);
         infoMeta.setLore(List.of(
-                ChatColor.GRAY + total + " résultat(s)",
+                ChatColor.GRAY + String.valueOf(total) + " résultat(s)",
                 ChatColor.DARK_GRAY + "Recherche : \"" + query + "\""
         ));
         info.setItemMeta(infoMeta);
